@@ -1,6 +1,6 @@
 # World Cup Sweepstake
 
-This is a v basic vibe coded project for a 2026 World Cup Sweepstake
+This is a v basic vibe coded project for a 2026 World Cup Sweepstake: https://world-cup-sweepstake-chi.vercel.app/
 
 # React + Vite
 
