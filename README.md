@@ -1,3 +1,7 @@
+# World Cup Sweepstake
+
+This is a v basic vibe coded project for a 2026 World Cup Sweepstake
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
