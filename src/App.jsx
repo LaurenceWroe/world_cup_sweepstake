@@ -20,7 +20,7 @@ const TABS = [
 export default function App() {
   const [activeTab, setActiveTab]     = useState("leaderboard");
   const [selectedPlayer, setSelected] = useState(null);
-  const [theme, setTheme]             = useState(() => localStorage.getItem("theme") || "dark");
+  const [theme, setTheme]             = useState(() => localStorage.getItem("theme") || "light");
   const { state, setPrize, addMatch, removeMatch, toggleEliminated } = useStore();
   const { data: liveData, loading: liveLoading } = useScores();
 

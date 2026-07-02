@@ -49,19 +49,26 @@ export default async function handler(req, res) {
     const completed = allMatches.filter(m => m.status === "FINISHED");
 
     // ── Matches ───────────────────────────────────────────────────────────────
+    // football-data.org includes penalty goals in score.fullTime for shootout games,
+    // so subtract them to get the actual goals scored in open play + extra time.
     const matches = completed
-      .map(m => ({
-        id:        m.id,
-        date:      new Date(m.utcDate).toLocaleDateString("en-GB"),
-        team1:     norm(m.homeTeam.name),
-        score1:    m.score.fullTime.home ?? 0,
-        team2:     norm(m.awayTeam.name),
-        score2:    m.score.fullTime.away ?? 0,
-        stage:     mapStage(m.stage),
-        duration:  m.score.duration, // "REGULAR" | "EXTRA_TIME" | "PENALTY_SHOOTOUT"
-        penScore1: m.score.duration === "PENALTY_SHOOTOUT" ? (m.score.penalties?.home ?? null) : null,
-        penScore2: m.score.duration === "PENALTY_SHOOTOUT" ? (m.score.penalties?.away ?? null) : null,
-      }))
+      .map(m => {
+        const isPen   = m.score.duration === "PENALTY_SHOOTOUT";
+        const penHome = m.score.penalties?.home ?? 0;
+        const penAway = m.score.penalties?.away ?? 0;
+        return {
+          id:        m.id,
+          date:      new Date(m.utcDate).toLocaleDateString("en-GB"),
+          team1:     norm(m.homeTeam.name),
+          score1:    isPen ? (m.score.fullTime.home ?? 0) - penHome : (m.score.fullTime.home ?? 0),
+          team2:     norm(m.awayTeam.name),
+          score2:    isPen ? (m.score.fullTime.away ?? 0) - penAway : (m.score.fullTime.away ?? 0),
+          stage:     mapStage(m.stage),
+          duration:  m.score.duration,
+          penScore1: isPen ? penHome : null,
+          penScore2: isPen ? penAway : null,
+        };
+      })
       .reverse();
 
     // ── Eliminated teams ──────────────────────────────────────────────────────
@@ -105,10 +112,13 @@ export default async function handler(req, res) {
     // ── Goals table ───────────────────────────────────────────────────────────
     const goalsByTeam = {};
     for (const m of completed) {
-      const h = norm(m.homeTeam.name);
-      const a = norm(m.awayTeam.name);
-      goalsByTeam[h] = (goalsByTeam[h] ?? 0) + (m.score.fullTime.home ?? 0);
-      goalsByTeam[a] = (goalsByTeam[a] ?? 0) + (m.score.fullTime.away ?? 0);
+      const h      = norm(m.homeTeam.name);
+      const a      = norm(m.awayTeam.name);
+      const isPen  = m.score.duration === "PENALTY_SHOOTOUT";
+      const hGoals = (m.score.fullTime.home ?? 0) - (isPen ? (m.score.penalties?.home ?? 0) : 0);
+      const aGoals = (m.score.fullTime.away ?? 0) - (isPen ? (m.score.penalties?.away ?? 0) : 0);
+      goalsByTeam[h] = (goalsByTeam[h] ?? 0) + hGoals;
+      goalsByTeam[a] = (goalsByTeam[a] ?? 0) + aGoals;
     }
 
     // ── Upcoming fixtures ─────────────────────────────────────────────────────
