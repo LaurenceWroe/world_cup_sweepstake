@@ -3,7 +3,7 @@ import { ALL_TEAMS, FLAGS } from "../data/draw";
 import { STAGES } from "../data/state";
 import { findOwner } from "../utils/helpers";
 
-export default function ResultsTab({ matches, addMatch, removeMatch, eliminated, toggleEliminated, liveLoading, updatedAt }) {
+export default function ResultsTab({ matches, upcoming, addMatch, removeMatch, eliminated, toggleEliminated, liveLoading, updatedAt }) {
   const [form, setForm] = useState({ team1: "", score1: "", score2: "", team2: "", stage: "Group Stage" });
   const [adminOpen, setAdminOpen] = useState(false);
 
@@ -17,10 +17,17 @@ export default function ResultsTab({ matches, addMatch, removeMatch, eliminated,
     setForm({ team1: "", score1: "", score2: "", team2: "", stage: "Group Stage" });
   }
 
-  const byStage = STAGES.map((stage) => ({
+  // Latest stage first
+  const byStage = [...STAGES].reverse().map((stage) => ({
     stage,
     matches: matches.filter((m) => m.stage === stage),
   })).filter((g) => g.matches.length > 0);
+
+  // Upcoming grouped by stage (earliest first)
+  const fixturesByStage = STAGES.map((stage) => ({
+    stage,
+    fixtures: upcoming.filter((f) => f.stage === stage),
+  })).filter((g) => g.fixtures.length > 0);
 
   return (
     <div className="fade-in">
@@ -29,7 +36,7 @@ export default function ResultsTab({ matches, addMatch, removeMatch, eliminated,
           Results
           {liveLoading && <span className="live-dot" title="Fetching scores…">⟳</span>}
           {!liveLoading && updatedAt && (
-            <span className="live-badge" title={`Data from API-Football, cached 20 min`}>LIVE</span>
+            <span className="live-badge" title="Live data, cached 30 min">LIVE</span>
           )}
         </h2>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -92,12 +99,49 @@ export default function ResultsTab({ matches, addMatch, removeMatch, eliminated,
         </div>
       )}
 
+      {/* Upcoming fixtures */}
+      {fixturesByStage.length > 0 && (
+        <div className="results-list" style={{ marginBottom: 32 }}>
+          <div className="panel-label">UPCOMING FIXTURES</div>
+          {fixturesByStage.map(({ stage, fixtures }) => (
+            <div key={stage}>
+              <div className="stage-header">{stage}</div>
+              {fixtures.map((f) => {
+                const o1 = f.team1 ? findOwner(f.team1) : null;
+                const o2 = f.team2 ? findOwner(f.team2) : null;
+                const kickoff = new Date(f.dateISO);
+                return (
+                  <div key={f.id} className="match-row fixture-row">
+                    <div className="match-team match-team-home">
+                      {f.team1 && <span className="match-flag">{FLAGS[f.team1]}</span>}
+                      <span className="match-name">{f.team1 ?? "TBD"}</span>
+                      {o1 && <span className="match-owner">{o1}</span>}
+                    </div>
+                    <div className="fixture-time">
+                      <div className="fixture-date">{kickoff.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</div>
+                      <div className="fixture-kickoff">{kickoff.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</div>
+                    </div>
+                    <div className="match-team match-team-away">
+                      {o2 && <span className="match-owner">{o2}</span>}
+                      <span className="match-name">{f.team2 ?? "TBD"}</span>
+                      {f.team2 && <span className="match-flag">{FLAGS[f.team2]}</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Results */}
       {matches.length === 0 ? (
         <div className="empty-state">
           No results yet. Tournament kicks off <strong>11 June 2026</strong> 🏟️
         </div>
       ) : (
         <div className="results-list">
+          <div className="panel-label">RESULTS</div>
           {byStage.map(({ stage, matches: stageMatches }) => (
             <div key={stage}>
               <div className="stage-header">{stage}</div>
@@ -115,6 +159,10 @@ export default function ResultsTab({ matches, addMatch, removeMatch, eliminated,
                       <span>{m.score1}</span>
                       <span className="score-dash">–</span>
                       <span>{m.score2}</span>
+                      {m.duration === "EXTRA_TIME" && <span className="score-aet">AET</span>}
+                      {m.penScore1 != null && (
+                        <span className="score-pens">({m.penScore1}–{m.penScore2} pens)</span>
+                      )}
                     </div>
                     <div className="match-team match-team-away">
                       {o2 && <span className="match-owner">{o2}</span>}

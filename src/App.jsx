@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStore } from "./hooks/useStore";
 import { useScores } from "./hooks/useScores";
 import DrawTab from "./components/DrawTab";
@@ -20,8 +20,14 @@ const TABS = [
 export default function App() {
   const [activeTab, setActiveTab]     = useState("leaderboard");
   const [selectedPlayer, setSelected] = useState(null);
+  const [theme, setTheme]             = useState(() => localStorage.getItem("theme") || "dark");
   const { state, setPrize, addMatch, removeMatch, toggleEliminated } = useStore();
   const { data: liveData, loading: liveLoading } = useScores();
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
 
   const liveMatches   = liveData?.matches ?? [];
   const manualMatches = state.matches.filter(
@@ -53,6 +59,13 @@ export default function App() {
 
       <div className="container">
         <header className="header">
+          <button
+            className="theme-toggle"
+            onClick={() => setTheme(t => t === "dark" ? "light" : "dark")}
+            title="Toggle light/dark mode"
+          >
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
           <div className="header-eyebrow">OFFICIAL SWEEPSTAKE</div>
           <h1 className="header-title">
             <span className="title-fifa">FIFA</span>{" "}
@@ -99,6 +112,7 @@ export default function App() {
           {activeTab === "results" && (
             <ResultsTab
               matches={allMatches}
+              upcoming={liveData?.upcoming ?? []}
               addMatch={addMatch}
               removeMatch={removeMatch}
               eliminated={allEliminated}

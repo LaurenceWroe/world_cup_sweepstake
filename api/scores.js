@@ -51,13 +51,16 @@ export default async function handler(req, res) {
     // ── Matches ───────────────────────────────────────────────────────────────
     const matches = completed
       .map(m => ({
-        id:     m.id,
-        date:   new Date(m.utcDate).toLocaleDateString("en-GB"),
-        team1:  norm(m.homeTeam.name),
-        score1: m.score.fullTime.home ?? 0,
-        team2:  norm(m.awayTeam.name),
-        score2: m.score.fullTime.away ?? 0,
-        stage:  mapStage(m.stage),
+        id:        m.id,
+        date:      new Date(m.utcDate).toLocaleDateString("en-GB"),
+        team1:     norm(m.homeTeam.name),
+        score1:    m.score.fullTime.home ?? 0,
+        team2:     norm(m.awayTeam.name),
+        score2:    m.score.fullTime.away ?? 0,
+        stage:     mapStage(m.stage),
+        duration:  m.score.duration, // "REGULAR" | "EXTRA_TIME" | "PENALTY_SHOOTOUT"
+        penScore1: m.score.duration === "PENALTY_SHOOTOUT" ? (m.score.penalties?.home ?? null) : null,
+        penScore2: m.score.duration === "PENALTY_SHOOTOUT" ? (m.score.penalties?.away ?? null) : null,
       }))
       .reverse();
 
@@ -108,19 +111,28 @@ export default async function handler(req, res) {
       goalsByTeam[a] = (goalsByTeam[a] ?? 0) + (m.score.fullTime.away ?? 0);
     }
 
-    // ── Next upcoming fixture ─────────────────────────────────────────────────
+    // ── Upcoming fixtures ─────────────────────────────────────────────────────
     const doneStatuses = new Set(["FINISHED", "CANCELLED", "POSTPONED", "SUSPENDED", "AWARDED"]);
-    const nextFixture = allMatches
+    const upcomingSorted = allMatches
       .filter(m => !doneStatuses.has(m.status))
-      .sort((a, b) => new Date(a.utcDate) - new Date(b.utcDate))[0] ?? null;
-    const nextGame = nextFixture ? {
-      dateISO: nextFixture.utcDate,
-      team1:   norm(nextFixture.homeTeam.name),
-      team2:   norm(nextFixture.awayTeam.name),
-      stage:   mapStage(nextFixture.stage),
+      .sort((a, b) => new Date(a.utcDate) - new Date(b.utcDate));
+
+    const nextGame = upcomingSorted[0] ? {
+      dateISO: upcomingSorted[0].utcDate,
+      team1:   upcomingSorted[0].homeTeam?.name ? norm(upcomingSorted[0].homeTeam.name) : null,
+      team2:   upcomingSorted[0].awayTeam?.name ? norm(upcomingSorted[0].awayTeam.name) : null,
+      stage:   mapStage(upcomingSorted[0].stage),
     } : null;
 
-    res.json({ matches, eliminated, prizes, goalsByTeam, nextGame, updatedAt: new Date().toISOString() });
+    const upcoming = upcomingSorted.map(m => ({
+      id:      m.id,
+      dateISO: m.utcDate,
+      team1:   m.homeTeam?.name ? norm(m.homeTeam.name) : null,
+      team2:   m.awayTeam?.name ? norm(m.awayTeam.name) : null,
+      stage:   mapStage(m.stage),
+    }));
+
+    res.json({ matches, eliminated, prizes, goalsByTeam, nextGame, upcoming, updatedAt: new Date().toISOString() });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
