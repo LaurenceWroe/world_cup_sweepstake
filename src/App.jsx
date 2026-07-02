@@ -7,7 +7,7 @@ import PrizesTab from "./components/PrizesTab";
 import ResultsTab from "./components/ResultsTab";
 import PlayerPortal from "./components/PlayerPortal";
 import Countdown from "./components/Countdown";
-import { TOTAL_POT, PLAYERS } from "./data/draw";
+import { TOTAL_POT, PLAYERS, DRAW } from "./data/draw";
 import "./index.css";
 
 const TABS = [
@@ -30,6 +30,10 @@ export default function App() {
   const allMatches    = [...liveMatches, ...manualMatches];
 
   const allEliminated = [...new Set([...(liveData?.eliminated ?? []), ...state.eliminated])];
+
+  const playersEliminated = PLAYERS.filter(
+    (p) => DRAW[p].every((t) => allEliminated.includes(t))
+  ).length;
 
   // Auto-detected prizes from API; red card written back via setPrize when found
   const autoPrizes = liveData?.prizes ?? {};
@@ -62,10 +66,9 @@ export default function App() {
           />
 
           <div className="header-stats">
-            <Stat value={`£${TOTAL_POT}`} label="TOTAL POT"  color="#d4af37" />
-            <Stat value={PLAYERS.length}  label="PLAYERS"     color="#4a9eff" />
-            <Stat value="48"              label="NATIONS"     color="#f0f0f0" />
-            <Stat value={allEliminated.length} label="ELIMINATED" color="#ff6b6b" />
+            <Stat value={`£${TOTAL_POT}`}                        label="TOTAL POT"          color="#d4af37" />
+            <Stat value={`${allEliminated.length}/48`}           label="TEAMS ELIMINATED"   color="#ff6b6b" />
+            <Stat value={`${playersEliminated}/24`}              label="PLAYERS ELIMINATED" color="#ff6b6b" />
           </div>
         </header>
 

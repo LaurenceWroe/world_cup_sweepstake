@@ -44,7 +44,7 @@ export default async function handler(req, res) {
 
     const allMatches = matchesData.matches ?? [];
     const groups     = (standingsData.standings ?? [])
-      .filter(s => s.type === "TOTAL" && s.stage === "GROUP_STAGE");
+      .filter(s => s.type === "TOTAL");
 
     const completed = allMatches.filter(m => m.status === "FINISHED");
 
